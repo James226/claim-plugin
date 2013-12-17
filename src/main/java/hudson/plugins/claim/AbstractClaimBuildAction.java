@@ -5,11 +5,18 @@ import hudson.model.Hudson;
 import hudson.model.ProminentProjectAction;
 import hudson.model.Saveable;
 import hudson.model.User;
+import hudson.tasks.Mailer;
 import hudson.tasks.junit.TestAction;
 
 import java.io.IOException;
 import java.util.Date;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
+ 
+import javax.mail.Message;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import javax.servlet.ServletException;
 
 import org.acegisecurity.Authentication;
@@ -24,6 +31,7 @@ public abstract class AbstractClaimBuildAction<T extends Saveable> extends TestA
 		ProminentProjectAction {
 
 	private static final long serialVersionUID = 1L;
+	private static final Logger LOGGER = Logger.getLogger(AbstractClaimBuildAction.class.getName());
 
 	private boolean claimed;
 	private String claimedBy;
@@ -49,14 +57,55 @@ public abstract class AbstractClaimBuildAction<T extends Saveable> extends TestA
 	public void doClaim(StaplerRequest req, StaplerResponse resp)
 			throws ServletException, IOException {
 		Authentication authentication = Hudson.getAuthentication();
-		String name = authentication.getName();
+    String currentUsername = authentication.getName();
+		String name = (String) req.getSubmittedForm().get("who");
+    if (StringUtils.isEmpty(name)) {
+      name = currentUsername;
+    } else {
+      // Validate the specified username.
+      User assignedToUser = User.get(name, false);
+      if (assignedToUser == null) {
+        LOGGER.log(Level.WARNING, "Invalid username specified for assignment: "+name);
+        resp.forwardToPreviousPage(req);
+        return;
+      }
+    }
 		String reason = (String) req.getSubmittedForm().get("reason");
 		boolean sticky = req.getSubmittedForm().getBoolean("sticky");
 		if (StringUtils.isEmpty(reason)) reason = null;
 		claim(name, reason, sticky);
 		owner.save();
+		if (!currentUsername.equals(name)) {
+			sendAssignmentEmail(name, currentUsername, reason);
+		}
 		resp.forwardToPreviousPage(req);
 	}
+	
+	private void sendAssignmentEmail(String assignee, String assignedBy, String reason) {
+	  try {
+	    User assigneeUser = User.get(assignee, false);
+	    String assigneeEmail = assigneeUser.getProperty(Mailer.UserProperty.class).getAddress();
+	    String claimedItemDisplayName = getClaimedItemDisplayName();
+	    String claimedItemUrl = Mailer.descriptor().getUrl()+getClaimedItemUrl();
+
+	    MimeMessage msg = new MimeMessage(Mailer.descriptor().createSession());
+	    msg.setFrom(new InternetAddress(Mailer.descriptor().getAdminAddress()));
+	    msg.setRecipient(Message.RecipientType.TO, new InternetAddress(assigneeEmail));
+	    msg.setSentDate(new Date());
+	    msg.setSubject(getNoun()+" assigned to you: "+claimedItemDisplayName);
+
+	    String msgContent = assignedBy + " assigned you this "+getNoun()+": "+claimedItemDisplayName;
+	    msgContent += "\n\nReason: "+reason;
+	    msgContent += "\n\n"+claimedItemUrl;
+	    msg.setContent(msgContent, "text/plain");
+
+	    Transport.send(msg);
+	  } catch (Exception e) {
+	    LOGGER.log(Level.WARNING, "Could not send assignment email to "+assignee, e);
+	  }
+	}
+	protected abstract String getClaimedItemDisplayName();
+	protected abstract String getClaimedItemUrl();
 
 	public void doUnclaim(StaplerRequest req, StaplerResponse resp)
 			throws ServletException, IOException {

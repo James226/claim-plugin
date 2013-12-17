@@ -25,5 +25,15 @@ public class ClaimTestAction extends AbstractClaimBuildAction<Data> {
 	public String getNoun() {
 		return Messages.ClaimTestAction_Noun();
 	}
+	
+	@Override
+	protected String getClaimedItemDisplayName() {
+	  String buildDisplayName = owner.getBuild().getFullDisplayName();
+    return testObjectId+" ("+buildDisplayName+")";
+  }
+	@Override
+	protected String getClaimedItemUrl() {
+	  return owner.getBuild().getUrl();
+	}
 
 }

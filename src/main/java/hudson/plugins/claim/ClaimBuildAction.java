@@ -29,5 +29,14 @@ public class ClaimBuildAction extends AbstractClaimBuildAction<Run> {
 		}
 		return this;
 	}
+	
+	@Override
+	protected String getClaimedItemDisplayName() {
+	  return owner.getFullDisplayName();
+	}
+	@Override
+	protected String getClaimedItemUrl() {
+	  return owner.getUrl();
+	}
 
 }

@@ -82,6 +82,10 @@ public class ClaimTestDataPublisher extends TestDataPublisher {
 			
 			return Collections.emptyList();
 		}
+		
+		public AbstractBuild<?,?> getBuild() {
+		  return build;
+		}
 
 		public void save() throws IOException {
 			build.save();

@@ -4,13 +4,26 @@
     <script type="text/javascript">
         function ShowPopup(hoveritem)
         {
+			HideAssignPopup();
             hp = document.getElementById("claimHoverPopup");
             hp.style.display = "block";
         }
 
-        function HidePopup()
+        function HideClaimPopup()
         {
             hp = document.getElementById("claimHoverPopup");
+            hp.style.display = "none";
+        }
+		
+		function ShowAssignPopup(hoveritem)
+        {
+            HideClaimPopup();
+            hp = document.getElementById("assignHoverPopup");
+            hp.style.display = "block";
+        }
+        function HideAssignPopup()
+        {
+            hp = document.getElementById("assignHoverPopup");
             hp.style.display = "none";
         }
     </script>
@@ -30,6 +43,7 @@
                      </j:choose>
                     <j:if test="${it.canRelease()}">
                         <a id="dropClaim" href="claim/unclaim">${%Drop the claim.}</a>
+						<a id="reassign" href="#" onClick="ShowAssignPopup(this); return false;">Re-assign</a>.
                     </j:if>
                 </p>
                 <j:if test="${it.hasReason()}">
@@ -49,6 +63,7 @@
                      </j:choose>
                     <j:if test="${it.canClaim()}">
                         <a id="claimForYourself" href="#" onClick="ShowPopup(this); return false;">${%Claim for yourself.}</a>
+						<a id="reassign" href="#" onClick="ShowAssignPopup(this); return false;">Re-assign</a>.
                     </j:if>
                 </p>
                 <j:if test="${it.hasReason()}">
@@ -59,6 +74,7 @@
                 ${%not.claimed(it.noun)}
                 <j:if test="${it.canClaim()}">
                     ${%claim.it.link("ShowPopup(this); return false;")}
+					<a id ="assign" href="#" onClick="ShowAssignPopup(this); return false;">Assign</a>
                 </j:if>
             </j:otherwise>
         </j:choose>
@@ -73,7 +89,26 @@
                 <f:block>
                     <div align="right">
                         <f:submit value="${%Claim}"/>
-                        <input type="button" onClick="HidePopup();" value="${%Cancel}" class="submit-button"/>
+                        <input type="button" onClick="HideClaimPopup();" value="${%Cancel}" class="submit-button"/>
+                    </div>
+                </f:block>
+            </f:form>
+        </div>
+		<div id="assignHoverPopup" style="display:none; width:500px; z-index:1000; border:1px solid #bbb;">
+            <f:form method="post" action="claim/claim" name="claim">
+                <f:entry title="${%Who}">
+                    <f:textbox name="who" value="${it.who}"/>
+                </f:entry>
+                <f:entry title="${%Reason}" help="/plugin/claim/help-reason.html">
+                    <f:textarea name="reason" value="${it.reason}"/>
+                </f:entry>
+                <f:entry title="${%Sticky}" help="/plugin/claim/help-sticky.html"> 
+                    <f:checkbox name="sticky" checked="${it.sticky}"/>
+                </f:entry>
+                <f:block>
+                    <div align="right">
+                        <f:submit value="${%Assign}"/>
+                        <input type="button" onClick="HideAssignPopup();" value="Cancel" class="submit-button"/>
                     </div>
                 </f:block>
             </f:form>
